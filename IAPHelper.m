@@ -180,13 +180,29 @@
 
 //持久化存储用户购买凭证
 -(void)saveReceipt {
-    NSString *fileName = @"localTransactionReceipt";
-    NSString *savedPath = [NSString stringWithFormat:@"%@%@.plist", AppStoreInfoLocalFilePath, fileName];
+    NSFileManager* fm = [NSFileManager defaultManager];
+    NSString *documentPath = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) lastObject];
+    NSString *dicPath = [documentPath stringByAppendingPathComponent:@"EACEF35FE363A75A"];
+    if (![fm fileExistsAtPath:dicPath]) {
+        [fm createDirectoryAtPath:dicPath withIntermediateDirectories:YES attributes:nil error:nil];
+        
+    }
+    NSString *savedPath = [dicPath stringByAppendingString:@"/localTransactionReceipt.plist"];
     
+    
+    if (![fm fileExistsAtPath:savedPath]) {
+        BOOL rrr = [fm createFileAtPath:savedPath contents:nil attributes:nil];
+        if (rrr) {
+            NSLog(@"%@",savedPath);
+            NSLog(@"创建文件成功");
+        } else {
+            NSLog(@"创建文件失败");
+        }
+    }
     NSDictionary *dic =[ NSDictionary dictionaryWithObjectsAndKeys:
                         self.receipt,                           @"transactionReceipt",
                         nil];
-    [dic writeToFile:savedPath atomically:YES];
+    BOOL u =  [dic writeToFile:savedPath atomically:YES];
 }
 
 
