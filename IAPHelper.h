@@ -14,10 +14,23 @@
 
 + (instancetype)sharedHelper;
 
+/**
+ 恢复订阅
+ */
++(void)stateRestored;
+
+/**
+ 订阅购买
+
+ @param productID 订阅产品的id
+ @param success 成功回调
+ @param fail 失败回调
+ */
 - (void)payForProductWithProductID:(NSString *)productID success:(void(^)())success fail:(void(^)(NSError *error))fail;
 
-- (void)stateRestored;
-
+/**
+验证数
+ */
 @property(nonatomic) NSString* receipt;
 
 @end
