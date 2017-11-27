@@ -8,13 +8,6 @@
 
 #import <Foundation/Foundation.h>
 #import <StoreKit/StoreKit.h>
-@protocol PayDelegate <NSObject>
-
--(void)payVerificationSuccess;
-
--(void)payVerificationfailed;
-
-@end
 
 @interface IAPHelper : NSObject
 
@@ -39,10 +32,5 @@
  */
 @property(nonatomic) NSString* receipt;
 
-@property(nonatomic,weak) id<PayDelegate> payVerificationDelegate;
-
-//获取购买的凭证
-// App进入验证
-- (void)sendFailedIapFiles;
 
 @end
