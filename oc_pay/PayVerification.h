@@ -1,9 +1,9 @@
 //
-//  PayVerification.h
-//  MMCalculator
+//  ViewController.m
+//  KingScanner
 //
-//  Created by 杰刘 on 2017/11/27.
-//
+//  Created by 杰刘 on 2018/5/21.
+//  Copyright © 2018年 刘杰. All rights reserved.
 
 #import <Foundation/Foundation.h>
 

@@ -1,22 +1,27 @@
 //
-//  IAPHelper.h
-//  BookClient
+//  ViewController.m
+//  KingScanner
 //
-//  Created by Leo on 2016/12/18.
-//  Copyright © 2016年 Leo. All rights reserved.
-//
+//  Created by 杰刘 on 2018/5/21.
+//  Copyright © 2018年 刘杰. All rights reserved.
 
 #import <Foundation/Foundation.h>
 #import <StoreKit/StoreKit.h>
 
+
+
+
 @interface IAPHelper : NSObject
+
+
+
 
 + (instancetype)sharedHelper;
 
 /**
  恢复订阅
  */
-+(void)stateRestored;
+-(void)stateRestored;
 
 /**
  订阅购买
@@ -28,7 +33,7 @@
 - (void)payForProductWithProductID:(NSString *)productID success:(void(^)())success fail:(void(^)(NSError *error))fail;
 
 /**
-验证数
+验证信息
  */
 @property(nonatomic) NSString* receipt;
 
