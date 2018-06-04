@@ -126,6 +126,40 @@
             case SKPaymentTransactionStateFailed:
                 errorReason = @"payment failed";
             {
+                switch (transaction.error.code) {
+                        
+                    case SKErrorUnknown:
+                        NSLog(@"SKErrorUnknown");
+                        NSLog(@"未知的错误，您可能正在使用越狱手机");
+                        break;
+                        
+                    case SKErrorClientInvalid:
+                        NSLog(@"SKErrorClientInvalid");
+                        NSLog(@"当前苹果账户无法购买商品(如有疑问，可以询问苹果客服)");
+                        break;
+                        
+                    case SKErrorPaymentCancelled:
+                        NSLog(@"SKErrorPaymentCancelled");
+                        NSLog(@"订单已取消");
+                        break;
+                    case SKErrorPaymentInvalid:
+                        NSLog(@"SKErrorPaymentInvalid");
+                        NSLog(@"订单无效(如有疑问，可以询问苹果客服)");
+                        break;
+                        
+                    case SKErrorPaymentNotAllowed:
+                        NSLog(@"SKErrorPaymentNotAllowed");
+                        NSLog(@"当前苹果设备无法购买商品(如有疑问，可以询问苹果客服)");
+                        break;
+                    case SKErrorStoreProductNotAvailable:
+                        NSLog(@"SKErrorStoreProductNotAvailable");
+                        NSLog(@"当前商品不可用");
+                        break;
+                    default:
+                        NSLog(@"No Match Found for error");
+                        NSLog(@"未知错误");
+                        break;
+                }
                 //支付失败的通知
                 NSNotification *notification =[NSNotification notificationWithName:@"paymentfailedtongzhi" object:nil userInfo:nil];
                 [[NSNotificationCenter defaultCenter] postNotification:notification];
