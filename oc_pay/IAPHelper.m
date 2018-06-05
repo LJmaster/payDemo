@@ -172,6 +172,7 @@
                 //支付成功的通知
                 NSNotification *notification =[NSNotification notificationWithName:@"Restoredtongzhi" object:nil userInfo:nil];
                 [[NSNotificationCenter defaultCenter] postNotification:notification];
+                [queue finishTransaction:transaction];
             }
                 errorReason = @"already pay for this product";
                 [queue finishTransaction:transaction];
@@ -185,13 +186,22 @@
         }
     }
 }
-//回复购买
+//恢复复购买
 -(void)stateRestored{
     [[SKPaymentQueue defaultQueue] restoreCompletedTransactions];
 }
 - (void)paymentQueue:(SKPaymentQueue *)queue restoreCompletedTransactionsFailedWithError:(NSError *)error{
-  NSNotification *notification =[NSNotification notificationWithName:@"paymentfailedtongzhi" object:nil userInfo:nil];
+  NSNotification *notification =[NSNotification notificationWithName:@"Restoredpaymentfailedtongzhi" object:nil userInfo:nil];
   [[NSNotificationCenter defaultCenter] postNotification:notification];
+}
+- (void) paymentQueueRestoreCompletedTransactionsFinished:(SKPaymentQueue *)queue
+{
+    purchasedItemIDs = [[NSMutableArray alloc] init];
+    NSLog(@"received restored transactions: %i", queue.transactions.count);
+    for (SKPaymentTransaction *transaction in queue.transactions)
+    {
+       //恢复购买成功以后 做处理 ，这里需要自己去操作
+    }
 }
 //持久化存储用户购买凭证
 -(void)saveReceipt {
