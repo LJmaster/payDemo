@@ -172,7 +172,6 @@
                 //支付成功的通知
                 NSNotification *notification =[NSNotification notificationWithName:@"Restoredtongzhi" object:nil userInfo:nil];
                 [[NSNotificationCenter defaultCenter] postNotification:notification];
-                [queue finishTransaction:transaction];
             }
                 errorReason = @"already pay for this product";
                 [queue finishTransaction:transaction];
@@ -201,6 +200,7 @@
     for (SKPaymentTransaction *transaction in queue.transactions)
     {
        //恢复购买成功以后 做处理 ，这里需要自己去操作
+        
     }
 }
 //持久化存储用户购买凭证
