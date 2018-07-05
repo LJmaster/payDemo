@@ -57,14 +57,17 @@
             // 验证成功,通知
             NSArray *receiptInfo = dict[@"latest_receipt_info"];
             NSDictionary *lastReceiptInfo = receiptInfo.lastObject;
-            //本地存储第一次订阅时间
-            NSDictionary * firstReceiptInfo = receiptInfo.firstObject;
-            NSString * purchase = firstReceiptInfo[@"purchase_date_ms"];
-            NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-            [defaults setObject:purchase forKey:@"purchase_date_ms"];
-            [defaults synchronize];
             
-            if (lastReceiptInfo != nil) {   
+            for (int i = 0; i < receiptInfo.count; i++) {
+                NSDictionary * ReceiptDict = receiptInfo[i];
+                NSString *lastexpires = lastReceiptInfo[@"expires_date_ms"];
+                NSString * Receiptexpires =ReceiptDict[@"expires_date_ms"];
+                if (Receiptexpires.intValue > lastexpires.intValue) {
+                    lastReceiptInfo = ReceiptDict;
+                }
+            }
+            
+            if (lastReceiptInfo != nil) {
                 //到期时间
                 NSString *expires = lastReceiptInfo[@"expires_date_ms"];
                 //第一次订阅时间
@@ -79,16 +82,13 @@
                     }
                 } else {
                     
-                    NSLog(@"我一共走了几次");
-                    
                     //未过期  本地存储信息 （expires_date_ms：到期日的时间戳）
                     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
                     [defaults setObject:expires forKey:@"expires_date_ms"];
-                    [defaults setObject:purchase forKey:@"purchase_date_ms"];
                     [defaults synchronize];
                     
                     if (self.payVerificationDelegate && [self.payVerificationDelegate respondsToSelector:@selector(payVerificationSuccess)]) {
-                            [self.payVerificationDelegate payVerificationSuccess];
+                        [self.payVerificationDelegate payVerificationSuccess];
                     }
                 }
             }

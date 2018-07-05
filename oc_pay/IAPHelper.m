@@ -202,6 +202,10 @@
        //恢复购买成功以后 做处理 ，这里需要自己去操作
         
     }
+    
+    //                 获取并加密支付凭证
+    self.receipt = [GTMBase64 stringByEncodingData:[NSData dataWithContentsOfURL:[[NSBundle mainBundle] appStoreReceiptURL]]];
+    [self saveReceipt];
 }
 //持久化存储用户购买凭证
 -(void)saveReceipt {
