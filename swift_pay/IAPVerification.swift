@@ -18,9 +18,7 @@ class IAPVerification: NSObject {
     weak var delegate:PayVerificationDeleage?
     
     func sendFailedIapFiles() {
-        
         let fileManager = FileManager.default
-        let error:Error
         //购买凭证 存储的路径
         let documentPath:String? = NSSearchPathForDirectoriesInDomains(.documentDirectory,.userDomainMask,true).last
         let appStoreInfoLocalFilePath = documentPath! + "/" + "EACEF35FE363A75A"
@@ -41,9 +39,8 @@ class IAPVerification: NSObject {
         let dict = NSDictionary.init(contentsOfFile: plistPath)
         
         var urlstr:String = "https://buy.itunes.apple.com/verifyReceipt"
-        
         #if DEBUG
-        // 测试环境下
+        // 测试环境
         urlstr = "https://sandbox.itunes.apple.com/verifyReceipt"
         #endif
         
@@ -57,7 +54,7 @@ class IAPVerification: NSObject {
         
         request.httpBody = payloadData
         // 提交验证请求，并获得官方的验证JSON结果
-//        try? NSURLConnection.sendSynchronousRequest(request as URLRequest, returning: nil)
+        //        try? NSURLConnection.sendSynchronousRequest(request as URLRequest, returning: nil)
         
         let result = try? NSURLConnection.sendSynchronousRequest(request as URLRequest, returning: nil)
         
@@ -67,28 +64,29 @@ class IAPVerification: NSObject {
             if resultdict != nil {
                 //读取订阅信息
                 let receiptInfo = resultdict!["latest_receipt_info"] as! NSArray
-                //本地存储最近一次订阅时间
-                let lastReceiptInfo = receiptInfo.lastObject as? NSDictionary
-                //本地存储第一次订阅时间
-                let firstReceiptInfo = receiptInfo.firstObject as? NSDictionary
-                let purchase = firstReceiptInfo!["purchase_date_ms"]
-                UserDefaults.standard.set(purchase, forKey: "purchase_date_ms")
-                UserDefaults.standard.synchronize()
-                
+                var lastReceiptInfo = NSDictionary()
+                for i in 0 ..< receiptInfo.count {
+                    let receiptDict = receiptInfo[i] as? NSDictionary
+                    //到期时间
+                    let expires:String = receiptDict?["expires_date_ms"] as! String
+                    if lastReceiptInfo["expires_date_ms"] == nil {
+                        lastReceiptInfo = receiptDict!
+                    }else{
+                        let lastexpires:String = lastReceiptInfo["expires_date_ms"] as! String
+                        if   Int(expires)! > Int(lastexpires)! {
+                            lastReceiptInfo = receiptDict!
+                        }
+                    }
+                }
                 if lastReceiptInfo != nil  //判断最后一次购买有没有数据
                 {
                     //到期时间
-                    let expires:String = (lastReceiptInfo!["expires_date_ms"] as? String)!
+                    let expires:String = (lastReceiptInfo["expires_date_ms"] as? String)!
                     //当前时间跟过期时间对比
                     let now = NSDate()
                     let timeInterval:TimeInterval = now.timeIntervalSince1970
-                    
-            
                     let expiresDoub:Double = Double(expires)!
-                 
-                    
                     let hhhh:Double = timeInterval * 1000
-             
                     let diff = hhhh - expiresDoub
                     if diff > 0 {
                         self.delegate?.payVerificationError()
@@ -105,25 +103,23 @@ class IAPVerification: NSObject {
         }
     }
     
-   static func getSubscriptionIsExpired() -> Bool{
+    static func getSubscriptionIsExpired() -> Bool{
         let sss = UserDefaults.standard.object(forKey: "expires_date_ms")
         if sss == nil {
-             return true
+            return true
         }else{
             //获取当前时间
             let now = NSDate()
             let timeInterval:TimeInterval = now.timeIntervalSince1970
             let hhhh:Double = timeInterval * 1000
-            
             let expiresDoub:Double = Double(sss as! String)!
-            
             let diff = hhhh - expiresDoub
             if diff > 0 {
                 return true
                 //过期
             }else{
                 //未过期
-               return false
+                return false
             }
         }
     }
