@@ -17,16 +17,23 @@ protocol IAPDelegate:class {
 }
 
 class IAPHelper: NSObject {
+ 
+    //单例
+    static let _shareiap = IAPHelper()
+    class func shareiap()->IAPHelper{
+        return _shareiap
+    }
     
     weak var delegate: IAPDelegate?
-    
+
     override init() {
         super.init()
+        SKPaymentQueue.default().add(self as SKPaymentTransactionObserver)//监听交易状态
     }
     deinit{
-        SKPaymentQueue.default().remove(self as SKPaymentTransactionObserver)
+         SKPaymentQueue.default().remove(self as SKPaymentTransactionObserver)
     }
-    
+   
     //开始请求订阅
     func payForProductWithProductID(productID:String)  {
         guard productID.isEmpty == false else {
@@ -46,19 +53,17 @@ class IAPHelper: NSObject {
     }
     //持久化存储用户购买凭证
     func saveReceipt(receipt:String) {
-        
         let fm = FileManager.default
         let documnetPath = NSSearchPathForDirectoriesInDomains(FileManager.SearchPathDirectory.documentDirectory, FileManager.SearchPathDomainMask.userDomainMask, true)[0] as NSString
         let dicPath = documnetPath.appendingPathComponent("EACEF35FE363A75A")
         if !fm.fileExists(atPath: dicPath) {
             do {
-                try fm.createDirectory(atPath: dicPath, withIntermediateDirectories: true, attributes: nil)
+             try fm.createDirectory(atPath: dicPath, withIntermediateDirectories: true, attributes: nil)
             }catch {
             }
         }
         let savedPath = dicPath.appending("/localTransactionReceipt.plist")
         if !fm.fileExists(atPath: dicPath) {
-            
             let rrr = fm.createFile(atPath: savedPath, contents: nil, attributes: nil)
             if rrr {
                 print("创建文件成功")
@@ -70,29 +75,31 @@ class IAPHelper: NSObject {
         let u = dict.write(toFile: savedPath, atomically: true)
         print("写入是否成功 \(u)")
     }
-    //恢复订阅
+//恢复订阅
     func restore() {
         //恢复购买
-        SKPaymentQueue.default().restoreCompletedTransactions()
-        SKPaymentQueue.default().add(self as SKPaymentTransactionObserver)
+                SKPaymentQueue.default().restoreCompletedTransactions()
+//                SKPaymentQueue.default().add(self as SKPaymentTransactionObserver)
     }
     func paymentQueueRestoreCompletedTransactionsFinished(_ queue: SKPaymentQueue) {
+        for transaction:SKPaymentTransaction in queue.transactions {
+            print("  购买时间  \(String(describing: transaction.transactionDate))")
+        }
         //写入本地
         let receipt = LJBase64.base64Encoding(plainData: try! Data.init(contentsOf: Bundle.main.appStoreReceiptURL!))
         if receipt.isEmpty == false {
             self.saveReceipt(receipt: receipt)
         }
         self.delegate?.payrestoresuccess()
-        
     }
     func paymentQueue(_ queue: SKPaymentQueue, restoreCompletedTransactionsFailedWithError error: Error) {
         self.delegate?.payrestoreError()
     }
-    
+    func restoreCompletedTransactions(withApplicationUsername username: String?){
+    }
 }
 
 extension IAPHelper:SKPaymentTransactionObserver{
-    
     // 当交易队列里面添加的每一笔交易状态发生变化的时候调用
     func paymentQueue(_ queue: SKPaymentQueue, updatedTransactions transactions: [SKPaymentTransaction]) {
         for transaction in transactions {
@@ -108,11 +115,15 @@ extension IAPHelper:SKPaymentTransactionObserver{
             case .purchased:
                 print("支付成功")
                 //写入本地
-                let receipt = LJBase64.base64Encoding(plainData: try! Data.init(contentsOf: Bundle.main.appStoreReceiptURL!))
-                if receipt.isEmpty == false {
-                    self.saveReceipt(receipt: receipt)
+                let receiptUrl = Bundle.main.appStoreReceiptURL
+                if receiptUrl != nil {
+                    let receipt = LJBase64.base64Encoding(plainData: try! Data.init(contentsOf: Bundle.main.appStoreReceiptURL!))
+                    if receipt.isEmpty == false {
+                        self.saveReceipt(receipt: receipt)
+                    }
+                    self.delegate?.paysuccess()
                 }
-                self.delegate?.paysuccess()
+                
                 queue.finishTransaction(transaction)
             case .purchasing:
                 print("正在支付")
@@ -122,7 +133,6 @@ extension IAPHelper:SKPaymentTransactionObserver{
             }
         }
     }
-    
 }
 
 extension IAPHelper:SKProductsRequestDelegate{
@@ -137,7 +147,6 @@ extension IAPHelper:SKProductsRequestDelegate{
             self.delegate?.payError()
             return
         }
-        
         for product in response.products {
             // 激活了对应的销售操作按钮，相当于商店的商品上架允许销售
             print("=======Product id=======\(product.productIdentifier)")
@@ -147,7 +156,7 @@ extension IAPHelper:SKProductsRequestDelegate{
         }
         let payment = SKPayment(product: product!)
         SKPaymentQueue.default().add(payment)//添加到支付队列
-        SKPaymentQueue.default().add(self as SKPaymentTransactionObserver)//监听交易状态
+//        SKPaymentQueue.default().add(self as SKPaymentTransactionObserver)
     }
     
     func request(_ request: SKRequest, didFailWithError error: Error) {

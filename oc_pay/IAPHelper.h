@@ -8,13 +8,7 @@
 #import <Foundation/Foundation.h>
 #import <StoreKit/StoreKit.h>
 
-
-
-
 @interface IAPHelper : NSObject
-
-
-
 
 + (instancetype)sharedHelper;
 
@@ -30,12 +24,12 @@
  @param success 成功回调
  @param fail 失败回调
  */
-- (void)payForProductWithProductID:(NSString *)productID success:(void(^)())success fail:(void(^)(NSError *error))fail;
+- (void)payForProductWithProductID:(NSString *)productID fail:(void(^)(NSError *error))fail;
 
 /**
 验证信息
  */
 @property(nonatomic) NSString* receipt;
 
-
+-(void)saveReceipt;
 @end

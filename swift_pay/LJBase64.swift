@@ -29,3 +29,4 @@ class LJBase64: NSObject {
         return decodedString
     }
 }
+

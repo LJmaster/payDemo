@@ -7,6 +7,7 @@
 
 #import "IAPHelper.h"
 #import "GTMBase64.h"
+#import "PayVerification.h"
 
 #ifdef DEBUG
 #define checkURL @"https://sandbox.itunes.apple.com/verifyReceipt"
@@ -40,7 +41,7 @@
     }
     return self;
 }
-- (void)payForProductWithProductID:(NSString *)productID success:(void(^)(void))success fail:(void(^)(NSError *error))fail {
+- (void)payForProductWithProductID:(NSString *)productID fail:(void(^)(NSError *error))fail {
     if (![SKPaymentQueue canMakePayments]) {             //替换项目时此处需修改
         NSError *error = [[NSError alloc] initWithDomain:@"calculator.app.mmcalculator" code:0 userInfo:@{@"error": @"cannot make payments"}];
         fail(error);
@@ -61,7 +62,6 @@
 - (void)productsRequest:(SKProductsRequest *)request didReceiveResponse:(SKProductsResponse *)response {
     NSLog(@"-----------收到产品反馈信息--------------");
     
-    
     SKProduct *product = response.products.firstObject;
     if (product == nil) {
         NSError *error = [[NSError alloc] initWithDomain:@"calculator.app.mmcalculator" code:0 userInfo:@{@"error": @"requested product not found"}];
@@ -72,33 +72,6 @@
     }
     SKPayment *pay = [SKPayment paymentWithProduct:product];
     [[SKPaymentQueue defaultQueue] addPayment:pay];
-    
-    
-//
-//    NSArray *myProduct = response.products;
-//    if (myProduct.count == 0) {
-//                NSError *error = [[NSError alloc] initWithDomain:@"calculator.app.mmcalculator" code:0 userInfo:@{@"error": @"requested product not found"}];
-//                if (_fail) {
-//                    _fail(error);
-//                }
-//                return;
-//    }
-//
-//    // populate UI
-//    for(SKProduct *product in myProduct){
-//
-//        NSLog(@"product info");
-//        NSLog(@"SKProduct描述信息%@", [product description]);
-//        NSLog(@"产品标题%@", product.localizedTitle);
-//        NSLog(@"价格: %@", product.price);
-//        NSLog(@"Product id: %@", product.productIdentifier);
-//        SKPayment *payment = [SKPayment paymentWithProduct:product];
-//        [[SKPaymentQueue defaultQueue] addPayment:payment];
-//        //addPayment 将支付信息添加进苹果的支付队列后，苹果会自动完成后续的购买请求，在用户购买成功或者点击取消购买的选项后回调
-//    }
-//
-    
-
 }
 - (void)request:(SKRequest *)request didFailWithError:(NSError *)error {
     NSNotification *notification =[NSNotification notificationWithName:@"paymentfailedtongzhi" object:nil userInfo:nil];
@@ -114,12 +87,16 @@
                 //                 获取并加密支付凭证
                 self.receipt = [GTMBase64 stringByEncodingData:[NSData dataWithContentsOfURL:[[NSBundle mainBundle] appStoreReceiptURL]]];
                 [self saveReceipt];
-                [queue finishTransaction:transaction];
-            {
-                //支付成功的通知
-                NSNotification *notification =[NSNotification notificationWithName:@"paysuccesstongzhi" object:nil userInfo:nil];
-                [[NSNotificationCenter defaultCenter] postNotification:notification];
-            }
+                //订阅特殊处理
+                if(transaction.originalTransaction){
+                    //如果是自动续费的订单originalTransaction会有内容
+                    [[PayVerification shared] sendFailedIapFiles];
+                }else{
+                    // 普通购买，以及 第一次购买 自动订阅
+                    NSNotification *notification =[NSNotification notificationWithName:@"paysuccesstongzhi" object:nil userInfo:nil];
+                    [[NSNotificationCenter defaultCenter] postNotification:notification];
+                }
+         
                 return;
             case SKPaymentTransactionStatePurchasing:
                 return;
@@ -163,27 +140,20 @@
                 //支付失败的通知
                 NSNotification *notification =[NSNotification notificationWithName:@"paymentfailedtongzhi" object:nil userInfo:nil];
                 [[NSNotificationCenter defaultCenter] postNotification:notification];
-                
             }
-                [queue finishTransaction:transaction];
                 break;
-            case SKPaymentTransactionStateRestored:
-            {
-                //支付成功的通知
-                NSNotification *notification =[NSNotification notificationWithName:@"Restoredtongzhi" object:nil userInfo:nil];
-                [[NSNotificationCenter defaultCenter] postNotification:notification];
-            }
-                errorReason = @"already pay for this product";
-                [queue finishTransaction:transaction];
+            case SKPaymentTransactionStateRestored://已经购买过该商品
                 break;
-            case SKPaymentTransactionStateDeferred:
-                errorReason = @"payment state deferred";
-                [queue finishTransaction:transaction];
+            case SKPaymentTransactionStateDeferred://商品添加进列表
                 break;
             default:
                 break;
         }
+        
+        [queue finishTransaction:transaction];
+
     }
+    
 }
 //恢复复购买
 -(void)stateRestored{
@@ -195,20 +165,23 @@
 }
 - (void) paymentQueueRestoreCompletedTransactionsFinished:(SKPaymentQueue *)queue
 {
-    purchasedItemIDs = [[NSMutableArray alloc] init];
-    NSLog(@"received restored transactions: %i", queue.transactions.count);
+    //恢复购买成功以后 做处理 ，这里需要自己去操作
+    NSLog(@"received restored transactions: %lu", (unsigned long)queue.transactions.count);
     for (SKPaymentTransaction *transaction in queue.transactions)
     {
-       //恢复购买成功以后 做处理 ，这里需要自己去操作
-        
     }
-    
-    //                 获取并加密支付凭证
+    //支付成功的通知
+    NSNotification *notification =[NSNotification notificationWithName:@"Restoredtongzhi" object:nil userInfo:nil];
+    [[NSNotificationCenter defaultCenter] postNotification:notification];
     self.receipt = [GTMBase64 stringByEncodingData:[NSData dataWithContentsOfURL:[[NSBundle mainBundle] appStoreReceiptURL]]];
     [self saveReceipt];
 }
 //持久化存储用户购买凭证
 -(void)saveReceipt {
+    
+    if (self.receipt == nil) {
+        self.receipt = [GTMBase64 stringByEncodingData:[NSData dataWithContentsOfURL:[[NSBundle mainBundle] appStoreReceiptURL]]];
+    }
     NSFileManager* fm = [NSFileManager defaultManager];
     NSString *documentPath = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) lastObject];
     NSString *dicPath = [documentPath stringByAppendingPathComponent:@"EACEF35FE363A75A"];
